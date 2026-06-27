@@ -1,0 +1,6 @@
+PassengerStartupFile server.js
+PassengerResolveSymlinksInDocumentRoot on
+Require all granted
+PassengerAppType node
+PassengerAppRoot /home/LOGIN/domains/F1282928.xsph.ru/public_html
+Options -MultiViews
