@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ панель — Frosty</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f7fa; color: #1a1a2e;
+      transition: background 0.4s, color 0.4s;
+      line-height: 1.6;
+    }
+    body.dark { background: #0d1117; color: #e6edf3; }
+
+    .theme-toggle {
+      position: fixed; top: 20px; right: 20px; z-index: 1000;
+      width: 44px; height: 44px; border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(12px); cursor: pointer; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    body.dark .theme-toggle { background: rgba(30,40,60,0.8); border-color: rgba(255,255,255,0.08); }
+    .theme-toggle:hover { transform: scale(1.05) rotate(15deg); }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .page-title { animation: fadeInUp 0.5s ease; }
+    .stat-card { animation: fadeInUp 0.5s ease; transition: all 0.3s ease, background 0.4s, border-color 0.4s; }
+    .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stat-card:nth-child(4) { animation-delay: 0.2s; }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(37,99,235,0.12); }
+    .stat-card .num { transition: color 0.3s; }
+    .stat-card:hover .num { color: #1d4ed8; }
+
+    .panel { animation: fadeInUp 0.6s ease; transition: all 0.3s ease, background 0.4s, border-color 0.4s; }
+    .panel:hover { box-shadow: 0 4px 24px rgba(37,99,235,0.06); transform: translateY(-1px); }
+
+    nav { animation: fadeIn 0.5s ease; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 28px; }
+
+    nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    body.dark nav { border-color: rgba(255,255,255,0.06); }
+    .logo { font-size: 22px; font-weight: 800; }
+    .logo span { color: #2563eb; }
+    .nav-links { display: flex; gap: 20px; list-style: none; align-items: center; }
+    .nav-links a { color: #64748b; text-decoration: none; font-size: 14px; font-weight: 500; }
+    body.dark .nav-links a { color: #8b949e; }
+    .nav-links a:hover { color: #2563eb; }
+    .nav-links .username { font-weight: 600; color: #2563eb; font-size: 14px; }
+    .admin-badge {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      color: #d97706; background: rgba(217,119,6,0.1); padding: 4px 10px; border-radius: 6px;
+    }
+
+    .page-title { font-size: 24px; font-weight: 700; margin: 32px 0 8px; display: flex; align-items: center; gap: 12px; }
+    .page-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+    body.dark .page-sub { color: #8b949e; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px;
+    }
+    .stat-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center;
+      transition: background 0.4s, border-color 0.4s;
+    }
+    body.dark .stat-card { background: #161b22; border-color: #30363d; }
+    .stat-card .num { font-size: 32px; font-weight: 800; color: #2563eb; }
+    .stat-card .label { font-size: 13px; color: #64748b; margin-top: 4px; }
+    body.dark .stat-card .label { color: #8b949e; }
+
+    .panel {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+      padding: 28px; margin-bottom: 24px;
+      transition: background 0.4s, border-color 0.4s;
+    }
+    body.dark .panel { background: #161b22; border-color: #30363d; }
+    .panel h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+    .key-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;
+    }
+    .key-btn {
+      padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px;
+      background: transparent; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+      color: #64748b; transition: all 0.2s;
+    }
+    body.dark .key-btn { border-color: #30363d; color: #8b949e; }
+    .key-btn:hover { border-color: #2563eb; color: #2563eb; background: rgba(37,99,235,0.04); }
+    .key-btn .icon { display: block; font-size: 20px; margin-bottom: 4px; }
+
+    .key-result {
+      margin-top: 12px; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 13px;
+      background: #f1f5f9; color: #334155; word-break: break-all; display: none;
+    }
+    body.dark .key-result { background: #0d1117; color: #8b949e; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    body.dark th { color: #8b949e; border-color: #30363d; }
+    td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+    body.dark td { border-color: #30363d; }
+    tr:hover td { background: rgba(37,99,235,0.03); }
+    body.dark tr:hover td { background: rgba(37,99,235,0.06); }
+
+    .badge {
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
+    }
+    .badge-admin { background: rgba(217,119,6,0.1); color: #d97706; }
+    .badge-user { background: rgba(37,99,235,0.1); color: #2563eb; }
+    .badge-banned { background: rgba(220,38,38,0.1); color: #dc2626; }
+    .badge-sub { background: rgba(22,163,74,0.1); color: #16a34a; }
+    .badge-nosub { background: rgba(100,116,139,0.1); color: #64748b; }
+    body.dark .badge-nosub { color: #8b949e; }
+
+    .btn-sm {
+      padding: 6px 14px; border: 1px solid #e2e8f0; border-radius: 8px;
+      font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+      background: transparent; color: #64748b; transition: all 0.2s;
+    }
+    body.dark .btn-sm { border-color: #30363d; color: #8b949e; }
+    .btn-sm.danger:hover { border-color: #dc2626; color: #dc2626; }
+    .btn-sm.success:hover { border-color: #16a34a; color: #16a34a; }
+    .btn-sm.primary:hover { border-color: #2563eb; color: #2563eb; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0;
+      background: transparent; font-size: 13px; font-weight: 500;
+      color: #64748b; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    body.dark .tab { border-color: #30363d; color: #8b949e; }
+    .tab:hover { border-color: #2563eb; color: #2563eb; }
+    .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .sub-dropdown {
+      padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 8px;
+      font-size: 12px; font-family: inherit; background: transparent; color: #64748b; cursor: pointer;
+    }
+    body.dark .sub-dropdown { border-color: #30363d; color: #8b949e; background: #0d1117; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9998;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 32px; width: 100%; max-width: 600px; margin: 20px;
+      position: relative; max-height: 80vh; overflow-y: auto;
+      animation: fadeInUp 0.3s ease;
+    }
+    body.dark .modal { background: #161b22; }
+    .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .modal .sub { font-size: 14px; color: #64748b; margin-bottom: 20px; }
+    body.dark .modal .sub { color: #8b949e; }
+    .modal .close-btn {
+      position: absolute; top: 16px; right: 20px; font-size: 20px; cursor: pointer;
+      color: #64748b; background: none; border: none; transition: transform 0.2s;
+    }
+    .modal .close-btn:hover { transform: rotate(90deg); }
+    .modal .mini-stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 20px; }
+    .modal .mini-stat {
+      padding: 16px; border: 1px solid #e2e8f0; border-radius: 10px; text-align: center;
+    }
+    body.dark .modal .mini-stat { border-color: #30363d; }
+    .modal .mini-stat .val { font-size: 24px; font-weight: 800; color: #2563eb; }
+    .modal .mini-stat .lbl { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .modal table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+    .modal th { text-align: left; padding: 8px 10px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    body.dark .modal th { color: #8b949e; border-color: #30363d; }
+    .modal td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+    body.dark .modal td { border-color: #30363d; }
+
+    .toast {
+      position: fixed; bottom: 30px; right: 30px; z-index: 9999;
+      padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500;
+      color: #fff; transform: translateY(100px); opacity: 0;
+      transition: all 0.4s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+
+    footer {
+      border-top: 1px solid rgba(0,0,0,0.06); padding: 24px 0; margin-top: 48px;
+      font-size: 13px; color: #64748b; text-align: center;
+    }
+    body.dark footer { border-color: rgba(255,255,255,0.06); color: #8b949e; }
+
+    @media (max-width: 640px) {
+      nav { flex-direction: column; gap: 12px; }
+      table { font-size: 12px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="theme-toggle" id="themeToggle">🌙</button>
+  <div class="toast" id="toast"></div>
+
+  <!-- User Stats Modal -->
+  <div class="modal-overlay" id="statsModal">
+    <div class="modal">
+      <button class="close-btn" onclick="closeStatsModal()">✕</button>
+      <h3 id="statsModalTitle">📊 Статистика пользователя</h3>
+      <div class="sub" id="statsModalSub">Загрузка...</div>
+      <div class="mini-stats" id="statsMiniGrid">
+        <div class="mini-stat"><div class="val" id="statTotalAttacks">0</div><div class="lbl">Всего атак</div></div>
+        <div class="mini-stat"><div class="val" id="statCompletedAttacks">0</div><div class="lbl">Завершено</div></div>
+        <div class="mini-stat"><div class="val" id="statTotalSuccess">0</div><div class="lbl">Успешных жалоб</div></div>
+        <div class="mini-stat"><div class="val" id="statTotalErrors">0</div><div class="lbl">Ошибок</div></div>
+      </div>
+      <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">📋 История атак</h4>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>ID</th><th>Цель</th><th>Причина</th><th>Статус</th><th>Успешно</th><th>Ошибок</th><th>Дата</th></tr></thead>
+          <tbody id="statsAttacksTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <nav>
+      <div class="logo">Frosty <span>•</span></div>
+      <ul class="nav-links">
+        <li><a href="/">Главная</a></li>
+        <li><a href="/dashboard">Панель</a></li>
+        <li><span class="admin-badge">admin</span></li>
+        <li><span class="username" id="navUser"></span></li>
+        <li><a href="#" id="logoutBtn" style="color:#ef4444">Выйти</a></li>
+      </ul>
+    </nav>
+
+    <div class="page-title"><span>🛡️ Админ панель</span></div>
+    <div class="page-sub">Управление пользователями, подписками и статистика системы</div>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="num" id="statUsers">—</div><div class="label">Пользователей</div></div>
+      <div class="stat-card"><div class="num" id="statAttacks">—</div><div class="label">Всего атак</div></div>
+      <div class="stat-card"><div class="num" id="statCompleted">—</div><div class="label">Завершено</div></div>
+      <div class="stat-card"><div class="num" id="statSent">—</div><div class="label">Отправлено жалоб</div></div>
+    </div>
+
+    <div class="panel" id="maintenancePanel" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;animation:fadeInUp 0.5s ease">
+      <div>
+        <h3 style="margin-bottom:4px">🔧 Режим технических работ</h3>
+        <p style="font-size:13px;color:#64748b">При включении атаки будут недоступны, на главной странице появится баннер</p>
+      </div>
+      <button class="btn-sm" id="maintenanceToggleBtn" style="padding:10px 24px;font-size:14px;font-weight:700">⋯ Загрузка</button>
+    </div>
+
+    <div class="tabs" id="adminTabs">
+      <button class="tab active" data-tab="users">👥 Пользователи</button>
+      <button class="tab" data-tab="keys">🔑 Ключи</button>
+      <button class="tab" data-tab="history">📋 История ключей</button>
+    </div>
+
+    <div class="tab-content active" id="tab-users">
+      <div class="panel">
+        <h3>👥 Пользователи</h3>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Логин</th><th>Роль</th><th>Подписка</th><th>Статус</th><th>Дата регистрации</th><th>Действия</th></tr>
+            </thead>
+            <tbody id="usersTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-keys">
+      <div class="panel" id="createKeyPanel" style="display:none">
+        <h3>🔑 Создать ключ подписки</h3>
+        <p style="font-size:13px;color:#64748b;margin-bottom:16px">Выберите длительность подписки для генерации ключа</p>
+        <div class="key-grid">
+          <button class="key-btn" data-duration="day"><span class="icon">📅</span> 1 день</button>
+          <button class="key-btn" data-duration="week"><span class="icon">📆</span> 1 неделя</button>
+          <button class="key-btn" data-duration="month"><span class="icon">🗓️</span> 1 месяц</button>
+          <button class="key-btn" data-duration="forever"><span class="icon">♾️</span> Навсегда</button>
+        </div>
+        <div class="key-result" id="keyResult">
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px">Сгенерированный ключ:</div>
+          <div id="keyValue" style="font-size:15px;font-weight:700;color:#2563eb"></div>
+          <button class="btn-sm" id="copyKeyBtn" style="margin-top:8px;border-color:#2563eb;color:#2563eb" onclick="copyKey()">📋 Копировать</button>
+        </div>
+      </div>
+
+      <div class="panel" id="grantSubPanel" style="display:none">
+        <h3>🎁 Выдать подписку пользователю</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <select id="subUserSelect" style="padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;background:transparent;color:#64748b;min-width:200px">
+            <option value="">— Выберите пользователя —</option>
+          </select>
+          <select id="subDurationSelect" style="padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;background:transparent;color:#64748b">
+            <option value="day">1 день</option>
+            <option value="week">1 неделя</option>
+            <option value="month">1 месяц</option>
+            <option value="forever">Навсегда</option>
+          </select>
+          <button class="btn-sm primary" id="grantSubBtn" style="padding:10px 20px;font-size:13px">Выдать</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-history">
+      <div class="panel">
+        <h3>📋 История использованных ключей</h3>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Ключ</th><th>Тип</th><th>Использовал</th><th>Дата активации</th><th>Создан</th></tr>
+            </thead>
+            <tbody id="keysTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <footer>© 2026 Frosty NETWORK — Административная панель</footer>
+  </div>
+
+  <script>
+    function toast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast ' + type + ' show';
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    function openStatsModal(userId, username) {
+      document.getElementById('statsModalTitle').textContent = `📊 Статистика: ${username}`;
+      document.getElementById('statsModalSub').textContent = 'Загрузка данных...';
+      document.getElementById('statsModal').classList.add('show');
+      document.getElementById('statTotalAttacks').textContent = '...';
+      document.getElementById('statCompletedAttacks').textContent = '...';
+      document.getElementById('statTotalSuccess').textContent = '...';
+      document.getElementById('statTotalErrors').textContent = '...';
+      document.getElementById('statsAttacksTable').innerHTML = '';
+
+      fetch(`/api/admin/user-attacks/${userId}`).then(r => r.json()).then(data => {
+        if (!data.ok) { document.getElementById('statsModalSub').textContent = 'Ошибка загрузки'; return; }
+        document.getElementById('statsModalSub').textContent = `ID: ${data.user.id} · @${data.user.username}`;
+        document.getElementById('statTotalAttacks').textContent = data.stats.totalAttacks;
+        document.getElementById('statCompletedAttacks').textContent = data.stats.completedAttacks;
+        document.getElementById('statTotalSuccess').textContent = data.stats.totalSuccess;
+        document.getElementById('statTotalErrors').textContent = data.stats.totalErrors;
+
+        const tbody = document.getElementById('statsAttacksTable');
+        if (!data.attacks.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:20px">Нет атак</td></tr>';
+          return;
+        }
+        const statusLabels = { active: 'Активна', completed: 'Завершена', completed_with_errors: 'С ошибками' };
+        tbody.innerHTML = data.attacks.map(a => `<tr>
+          <td>${a.id}</td>
+          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.target}</td>
+          <td>${a.reason}</td>
+          <td>${statusLabels[a.status] || a.status}</td>
+          <td style="color:#16a34a">${a.success_count}</td>
+          <td style="color:#dc2626">${a.error_count}</td>
+          <td>${a.created_at}</td>
+        </tr>`).join('');
+      });
+    }
+
+    function closeStatsModal() {
+      document.getElementById('statsModal').classList.remove('show');
+    }
+
+    const themeToggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('snoser-theme');
+    if (saved === 'dark') document.body.classList.add('dark');
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('snoser-theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+      themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+    });
+    themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+
+    let currentAdminUser = null;
+
+    fetch('/api/me').then(r => r.json()).then(data => {
+      if (!data.ok || data.user.role !== 'admin') { window.location.href = '/login'; return; }
+      currentAdminUser = data.user;
+      document.getElementById('navUser').textContent = data.user.username;
+      document.getElementById('createKeyPanel').style.display = 'block';
+      if (data.user.username === 'admin') {
+        document.getElementById('maintenancePanel').style.display = 'flex';
+        document.getElementById('grantSubPanel').style.display = 'block';
+        loadMaintenanceStatus();
+      }
+      loadData();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    });
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Maintenance toggle
+    async function loadMaintenanceStatus() {
+      const res = await fetch('/api/admin/maintenance-status');
+      const data = await res.json();
+      const btn = document.getElementById('maintenanceToggleBtn');
+      if (data.maintenance) {
+        btn.textContent = '🔧 Выключить тех.работы';
+        btn.style.background = '#dc2626';
+        btn.style.color = '#fff';
+        btn.style.border = 'none';
+      } else {
+        btn.textContent = '✅ Включить тех.работы';
+        btn.style.background = '#16a34a';
+        btn.style.color = '#fff';
+        btn.style.border = 'none';
+      }
+    }
+
+    document.getElementById('maintenanceToggleBtn').addEventListener('click', async () => {
+      const res = await fetch('/api/admin/toggle-maintenance', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        loadMaintenanceStatus();
+        toast(data.maintenance ? '🔧 Сайт переведён в режим тех.работ' : '✅ Тех.работы выключены', 'success');
+      } else {
+        toast('Ошибка', 'error');
+      }
+    });
+
+    async function loadData() {
+      const [reportsRes, usersRes, keysRes] = await Promise.all([
+        fetch('/api/admin/reports'),
+        fetch('/api/admin/users'),
+        fetch('/api/admin/keys')
+      ]);
+      const reports = await reportsRes.json();
+      const users = await usersRes.json();
+      const keys = await keysRes.json();
+
+      document.getElementById('statUsers').textContent = reports.totalUsers;
+      document.getElementById('statAttacks').textContent = reports.totalAttacks;
+      document.getElementById('statCompleted').textContent = reports.completedAttacks;
+      document.getElementById('statSent').textContent = reports.totalSent.toLocaleString();
+
+      // Users table
+      const tbody = document.getElementById('usersTable');
+      tbody.innerHTML = users.map(u => {
+        const roleBadge = u.role === 'admin' ? '<span class="badge badge-admin">admin</span>' : '<span class="badge badge-user">user</span>';
+        const statusBadge = u.banned ? '<span class="badge badge-banned">заблокирован</span>' : '<span style="color:#16a34a">активен</span>';
+
+        const now = new Date().toISOString();
+        const hasSub = u.subscription_expires_at && u.subscription_expires_at > now;
+        const subBadge = hasSub
+          ? '<span class="badge badge-sub">есть</span>'
+          : '<span class="badge badge-nosub">нет</span>';
+
+        const isMainAdmin = u.username === 'admin';
+        const isOtherAdmin = u.role === 'admin' && !isMainAdmin;
+        const canBan = !isMainAdmin;
+        const canMakeAdmin = u.role !== 'admin' && !u.banned;
+        const canRemoveAdmin = isOtherAdmin && currentAdminUser && currentAdminUser.username === 'admin';
+        const hasSubNow = u.subscription_expires_at && u.subscription_expires_at > now;
+        const canRemoveSub = hasSubNow && !isMainAdmin && currentAdminUser && currentAdminUser.username === 'admin';
+        const btnText = u.banned ? 'Разблокировать' : 'Заблокировать';
+        const btnClass = u.banned ? 'btn-sm success' : 'btn-sm danger';
+        return `<tr>
+          <td>${u.id}</td>
+          <td><strong>${u.username}</strong></td>
+          <td>${roleBadge}</td>
+          <td>${subBadge}</td>
+          <td>${statusBadge}</td>
+          <td>${u.created_at}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn-sm primary" data-id="${u.id}" data-username="${u.username}" data-action="stats" title="Статистика">📊</button>
+            ${canBan ? `<button class="${btnClass}" data-id="${u.id}" data-action="ban">${btnText}</button>` : ''}
+            ${canMakeAdmin ? `<button class="btn-sm primary" data-id="${u.id}" data-action="makeadmin">Сделать админом</button>` : ''}
+            ${canRemoveAdmin ? `<button class="btn-sm danger" data-id="${u.id}" data-action="removeadmin">Снять админа</button>` : ''}
+            ${canRemoveSub ? `<button class="btn-sm danger" data-id="${u.id}" data-action="removesub">Забрать подписку</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('');
+
+      document.querySelectorAll('button[data-action="stats"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          openStatsModal(parseInt(btn.dataset.id), btn.dataset.username);
+        });
+      });
+
+      document.querySelectorAll('button[data-action="ban"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const res = await fetch('/api/admin/toggle-ban', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: parseInt(btn.dataset.id) })
+          });
+          const data = await res.json();
+          if (data.ok) { loadData(); toast(data.banned ? 'Пользователь заблокирован' : 'Пользователь разблокирован', 'success'); }
+          else toast(data.error || 'Ошибка', 'error');
+        });
+      });
+
+      document.querySelectorAll('button[data-action="makeadmin"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Вы уверены, что хотите сделать этого пользователя администратором?')) return;
+          const res = await fetch('/api/admin/set-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: parseInt(btn.dataset.id) })
+          });
+          const data = await res.json();
+          if (data.ok) { loadData(); toast('Пользователь теперь администратор', 'success'); }
+          else toast(data.error || 'Ошибка', 'error');
+        });
+      });
+
+      document.querySelectorAll('button[data-action="removeadmin"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Вы уверены, что хотите снять права администратора с этого пользователя?')) return;
+          const res = await fetch('/api/admin/remove-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: parseInt(btn.dataset.id) })
+          });
+          const data = await res.json();
+          if (data.ok) { loadData(); toast('Права администратора сняты', 'success'); }
+          else toast(data.error || 'Ошибка', 'error');
+        });
+      });
+
+      document.querySelectorAll('button[data-action="removesub"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Вы уверены, что хотите забрать подписку у этого пользователя?')) return;
+          const res = await fetch('/api/admin/remove-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: parseInt(btn.dataset.id) })
+          });
+          const data = await res.json();
+          if (data.ok) { loadData(); toast('Подписка забрана', 'success'); }
+          else toast(data.error || 'Ошибка', 'error');
+        });
+      });
+
+      // Populate user select for grant sub
+      const userSelect = document.getElementById('subUserSelect');
+      userSelect.innerHTML = '<option value="">— Выберите пользователя —</option>' +
+        users.filter(u => !u.banned).map(u => `<option value="${u.id}">${u.username} (ID: ${u.id})</option>`).join('');
+
+      // Keys table
+      const ktbody = document.getElementById('keysTable');
+      ktbody.innerHTML = keys.map(k => {
+        const typeLabels = { day: '1 день', week: '1 неделя', month: '1 месяц', forever: 'Навсегда' };
+        return `<tr>
+          <td style="font-family:monospace;font-size:12px">${k.key}</td>
+          <td>${typeLabels[k.duration_type] || k.duration_type}</td>
+          <td>${k.used_by_username || '—'}</td>
+          <td>${k.used_at || '—'}</td>
+          <td>${k.created_at}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Create key
+    document.querySelectorAll('.key-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const duration = btn.dataset.duration;
+        const res = await fetch('/api/admin/create-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ duration })
+        });
+        const data = await res.json();
+        const resultEl = document.getElementById('keyResult');
+        const valueEl = document.getElementById('keyValue');
+        if (data.ok) {
+          valueEl.textContent = data.key;
+          resultEl.style.display = 'block';
+          toast('Ключ создан!', 'success');
+        } else {
+          toast(data.error || 'Ошибка', 'error');
+        }
+      });
+    });
+
+    function copyKey() {
+      const val = document.getElementById('keyValue').textContent;
+      navigator.clipboard.writeText(val).then(() => {
+        toast('Ключ скопирован!', 'success');
+      });
+    }
+
+    // Grant subscription directly
+    document.getElementById('grantSubBtn').addEventListener('click', async () => {
+      const userId = document.getElementById('subUserSelect').value;
+      const durationType = document.getElementById('subDurationSelect').value;
+      if (!userId) { toast('Выберите пользователя', 'error'); return; }
+      const res = await fetch('/api/admin/set-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: parseInt(userId), durationType })
+      });
+      const data = await res.json();
+      if (data.ok) { toast('Подписка выдана!', 'success'); loadData(); }
+      else toast(data.error || 'Ошибка', 'error');
+    });
+
+    // Close modal on overlay click or Escape
+    document.getElementById('statsModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('statsModal')) closeStatsModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeStatsModal();
+    });
+  </script>
+</body>
+</html>

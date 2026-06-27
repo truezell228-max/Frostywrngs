@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frosty — система массовых жалоб</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      transition: background 0.4s, color 0.4s;
+      line-height: 1.6;
+    }
+    body.dark { background: #0d1117; color: #e6edf3; }
+
+    .theme-toggle {
+      position: fixed; top: 20px; right: 20px; z-index: 1000;
+      width: 44px; height: 44px; border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(12px); cursor: pointer; font-size: 20px;
+      transition: all 0.3s; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: center;
+    }
+    body.dark .theme-toggle { background: rgba(30,40,60,0.8); border-color: rgba(255,255,255,0.08); }
+    .theme-toggle:hover { transform: scale(1.05); }
+
+    .maintenance-banner {
+      display: none;
+      background: linear-gradient(135deg, #dc2626, #ea580c);
+      color: #fff;
+      text-align: center;
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      animation: slideDown 0.6s ease;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+    .maintenance-banner.show { display: block; }
+    .maintenance-banner .icon { margin-right: 8px; }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .hero { animation: fadeInUp 0.8s ease; }
+    .feature-item { animation: fadeInUp 0.6s ease forwards; opacity: 0; }
+    .feature-item:nth-child(1) { animation-delay: 0.1s; }
+    .feature-item:nth-child(2) { animation-delay: 0.2s; }
+    .feature-item:nth-child(3) { animation-delay: 0.3s; }
+    .feature-item:nth-child(4) { animation-delay: 0.4s; }
+    .feature-item { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .feature-item:hover {
+      transform: translateY(-4px) scale(1.02);
+      border-color: #2563eb;
+      box-shadow: 0 8px 32px rgba(37,99,235,0.15);
+    }
+    .feature-item .fi-icon { transition: transform 0.4s ease; }
+    .feature-item:hover .fi-icon { transform: scale(1.2) rotate(5deg); }
+
+    .stat-num { animation: fadeIn 1s ease; }
+    .logo span { display: inline-block; animation: float 3s ease-in-out infinite; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+
+    nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+      transition: border-color 0.4s;
+    }
+    body.dark nav { border-color: rgba(255,255,255,0.06); }
+    .logo { font-size: 22px; font-weight: 800; color: #1a1a2e; transition: color 0.4s; }
+    body.dark .logo { color: #e6edf3; }
+    .logo span { color: #2563eb; }
+    .nav-links { display: flex; gap: 28px; list-style: none; align-items: center; }
+    .nav-links a {
+      color: #64748b; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.3s;
+    }
+    body.dark .nav-links a { color: #8b949e; }
+    .nav-links a:hover { color: #2563eb; }
+
+    .btn {
+      padding: 8px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      text-decoration: none; transition: all 0.25s; font-family: inherit; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; border: none;
+    }
+    .btn-outline {
+      border: 1px solid #e2e8f0; color: #64748b; background: transparent;
+    }
+    body.dark .btn-outline { border-color: #30363d; color: #8b949e; }
+    .btn-outline:hover { border-color: #2563eb; color: #2563eb; }
+    .btn-primary {
+      background: #2563eb; color: #fff;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+
+    .hero { padding: 100px 0 60px; text-align: center; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; color: #2563eb;
+      background: rgba(37,99,235,0.08); margin-bottom: 24px;
+    }
+    body.dark .hero-badge { background: rgba(37,99,235,0.15); }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #22c55e;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px); font-weight: 800; line-height: 1.15;
+      margin-bottom: 16px; letter-spacing: -1px;
+    }
+    .hero h1 .accent { color: #2563eb; }
+    .hero p {
+      font-size: 17px; color: #64748b; max-width: 560px; margin: 0 auto 32px;
+    }
+    body.dark .hero p { color: #8b949e; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-actions .btn { padding: 14px 32px; font-size: 15px; }
+
+    .section { padding: 60px 0; }
+    .section-title { font-size: 28px; font-weight: 700; margin-bottom: 32px; text-align: center; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
+    }
+    .feature-item {
+      padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;
+      background: #fff; transition: all 0.3s, background 0.4s, border-color 0.4s;
+    }
+    body.dark .feature-item { background: #161b22; border-color: #30363d; }
+    .feature-item:hover { border-color: #2563eb; box-shadow: 0 2px 16px rgba(37,99,235,0.08); }
+    body.dark .feature-item:hover { box-shadow: 0 2px 16px rgba(37,99,235,0.15); }
+    .feature-item .fi-icon { font-size: 28px; margin-bottom: 10px; }
+    .feature-item h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .feature-item p { font-size: 13px; color: #64748b; }
+    body.dark .feature-item p { color: #8b949e; }
+
+    .stats-row {
+      display: flex; justify-content: center; gap: 48px; margin-top: 48px; flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-num { font-size: 32px; font-weight: 800; color: #2563eb; }
+    .stat-label { font-size: 13px; color: #64748b; }
+
+    footer {
+      border-top: 1px solid rgba(0,0,0,0.06); padding: 24px 0;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px; font-size: 13px; color: #64748b;
+      transition: border-color 0.4s, color 0.4s;
+    }
+    body.dark footer { border-color: rgba(255,255,255,0.06); color: #8b949e; }
+
+    @media (max-width: 640px) {
+      nav { flex-direction: column; gap: 12px; }
+      .nav-links { gap: 16px; flex-wrap: wrap; justify-content: center; }
+      .hero { padding: 60px 0 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="theme-toggle" id="themeToggle">🌙</button>
+
+  <div class="maintenance-banner" id="maintenanceBanner">
+    <span class="icon">🔧</span>
+    Сайт на технических работах. Атаки временно недоступны.
+  </div>
+
+  <div class="container">
+    <nav>
+      <div class="logo">Frosty <span>•</span></div>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#features">Возможности</a></li>
+        <li><a href="#pricing">Прайс</a></li>
+        <li><a href="/login">Войти</a></li>
+        <li><a href="/register" class="btn btn-primary" style="padding:8px 20px">Регистрация</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="hero">
+    <div class="container">
+      <div class="hero-badge"><span class="dot"></span> Система активна · версия 3.2</div>
+      <h1>Массовые жалобы <br><span class="accent">на обидчика</span></h1>
+      <p>Запустите волну жалоб на канал, группу или сообщение в Telegram. Система автоматически распределит нагрузку между аккаунтами.</p>
+      <div class="hero-actions">
+        <a href="/register" class="btn btn-primary">Начать сейчас</a>
+        <a href="/login" class="btn btn-outline">Войти в систему</a>
+      </div>
+      <div class="stats-row">
+        <div class="stat-item"><div class="stat-num" id="sessionsOnline">368</div><div class="stat-label">Сессий онлайн</div></div>
+        <div class="stat-item"><div class="stat-num" id="totalAttacksStat">—</div><div class="stat-label">Всего атак</div></div>
+        <div class="stat-item"><div class="stat-num" id="totalSentStat">—</div><div class="stat-label">Отправлено жалоб</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="features">
+    <div class="container">
+      <h2 class="section-title">Возможности</h2>
+      <div class="features-grid">
+        <div class="feature-item" style="text-align:center"><div class="fi-icon">🚀</div><h4>Огромная скорость</h4><p>Мощные сервера обеспечивают максимальную скорость отправки жалоб</p></div>
+        <div class="feature-item" style="text-align:center"><div class="fi-icon">👥</div><h4>Большое количество сессий</h4><p>До 368 одновременных сессий для максимальной эффективности</p></div>
+        <div class="feature-item" style="text-align:center"><div class="fi-icon">💬</div><h4>Отзывчивая поддержка</h4><p>Круглосуточная поддержка — пишите @unnacy по любым вопросам</p></div>
+        <div class="feature-item" style="text-align:center"><div class="fi-icon">💵</div><h4>Низкие цены</h4><p>Доступные цены на подписку от $1 за день</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="pricing" style="padding-bottom:20px">
+    <div class="container">
+      <h2 class="section-title">💰 Прайс</h2>
+      <div class="features-grid">
+        <div class="feature-item" style="text-align:center;padding:32px 24px">
+          <div class="fi-icon">📅</div>
+          <h4>1 день</h4>
+          <div style="font-size:36px;font-weight:800;color:#2563eb;margin:12px 0">$1</div>
+          <p>Пробный период</p>
+        </div>
+        <div class="feature-item" style="text-align:center;padding:32px 24px">
+          <div class="fi-icon">📆</div>
+          <h4>7 дней</h4>
+          <div style="font-size:36px;font-weight:800;color:#2563eb;margin:12px 0">$5</div>
+          <p>Самое популярное</p>
+        </div>
+        <div class="feature-item" style="text-align:center;padding:32px 24px">
+          <div class="fi-icon">🗓️</div>
+          <h4>30 дней</h4>
+          <div style="font-size:36px;font-weight:800;color:#2563eb;margin:12px 0">$15</div>
+          <p>Оптимальный вариант</p>
+        </div>
+        <div class="feature-item" style="text-align:center;padding:32px 24px">
+          <div class="fi-icon">♾️</div>
+          <h4>Навсегда</h4>
+          <div style="font-size:36px;font-weight:800;color:#2563eb;margin:12px 0">$30</div>
+          <p>Без ограничений</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0;text-align:center">
+    <div class="container">
+      <div class="hero-badge" style="display:inline-flex;font-size:15px;padding:12px 24px">
+        💬 По вопросам покупки — <strong style="margin-left:6px">@unnacy</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <footer>
+      <div class="logo">Frosty <span>•</span></div>
+      <span>© 2026 Frosty NETWORK</span>
+      <span>Все данные обрабатываются анонимно</span>
+    </footer>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('snoser-theme');
+    if (saved === 'dark') document.body.classList.add('dark');
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      const isDark = document.body.classList.contains('dark');
+      localStorage.setItem('snoser-theme', isDark ? 'dark' : 'light');
+      themeToggle.textContent = isDark ? '☀️' : '🌙';
+    });
+    themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+
+    fetch('/api/stats').then(r => r.json()).then(data => {
+      document.getElementById('sessionsOnline').textContent = data.sessionsOnline.toLocaleString();
+      document.getElementById('totalAttacksStat').textContent = data.totalAttacks.toLocaleString();
+      document.getElementById('totalSentStat').textContent = data.totalSent.toLocaleString();
+      if (data.maintenance) {
+        document.getElementById('maintenanceBanner').classList.add('show');
+      }
+    });
+
+    fetch('/api/me').then(r => r.json()).then(data => {
+      if (data.ok) {
+        const nav = document.getElementById('navLinks');
+        const role = data.user.role;
+        nav.innerHTML = `
+          <li><a href="/">Главная</a></li>
+          <li><a href="/dashboard">Панель</a></li>
+          ${role === 'admin' ? '<li><a href="/admin">Админка</a></li>' : ''}
+          <li><a href="#" id="logoutBtn" style="color:#ef4444">Выйти</a></li>
+        `;
+        document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+          e.preventDefault();
+          await fetch('/api/logout', { method: 'POST' });
+          window.location.href = '/';
+        });
+      }
+    });
+  </script>
+</body>
+</html>

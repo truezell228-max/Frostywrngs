@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель — Frosty</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f7fa; color: #1a1a2e;
+      transition: background 0.4s, color 0.4s;
+      line-height: 1.6;
+    }
+    body.dark { background: #0d1117; color: #e6edf3; }
+
+    .theme-toggle {
+      position: fixed; top: 20px; right: 20px; z-index: 1000;
+      width: 44px; height: 44px; border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(12px); cursor: pointer; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    body.dark .theme-toggle { background: rgba(30,40,60,0.8); border-color: rgba(255,255,255,0.08); }
+    .theme-toggle:hover { transform: scale(1.05) rotate(15deg); }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .page-title { animation: fadeInUp 0.5s ease; }
+    .panel { animation: fadeInUp 0.6s ease; transition: all 0.3s ease, background 0.4s, border-color 0.4s; }
+    .panel:hover { box-shadow: 0 4px 24px rgba(37,99,235,0.06); }
+    nav { animation: fadeIn 0.5s ease; }
+    .history-item { transition: all 0.3s ease; }
+    .history-item:hover { transform: translateX(4px); border-color: #2563eb; }
+
+    .maintenance-badge {
+      display: none;
+      background: linear-gradient(135deg, #dc2626, #ea580c);
+      color: #fff;
+      text-align: center;
+      padding: 12px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      animation: slideDown 0.6s ease;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .maintenance-badge.show { display: block; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+
+    nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    body.dark nav { border-color: rgba(255,255,255,0.06); }
+    .logo { font-size: 22px; font-weight: 800; }
+    .logo span { color: #2563eb; }
+    .nav-links { display: flex; gap: 20px; list-style: none; align-items: center; }
+    .nav-links a {
+      color: #64748b; text-decoration: none; font-size: 14px; font-weight: 500;
+    }
+    body.dark .nav-links a { color: #8b949e; }
+    .nav-links a:hover { color: #2563eb; }
+    .nav-links .username { font-weight: 600; color: #2563eb; font-size: 14px; }
+    .nav-links .admin-link { color: #d97706; font-weight: 600; }
+
+    .sub-status {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    }
+    .sub-status.active { background: rgba(22,163,74,0.1); color: #16a34a; border: 1px solid rgba(22,163,74,0.2); }
+    .sub-status.inactive { background: rgba(220,38,38,0.1); color: #dc2626; border: 1px solid rgba(220,38,38,0.2); }
+    .sub-status .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .sub-status.active .dot { background: #16a34a; }
+    .sub-status.inactive .dot { background: #dc2626; }
+
+    .page-title { font-size: 24px; font-weight: 700; margin: 32px 0 8px; }
+    .page-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+    body.dark .page-sub { color: #8b949e; }
+
+    .panel {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+      padding: 32px; margin-bottom: 24px;
+      transition: background 0.4s, border-color 0.4s;
+    }
+    body.dark .panel { background: #161b22; border-color: #30363d; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+    body.dark .form-group label { color: #b1bac4; }
+
+    .input-wrapper { position: relative; }
+    .input-wrapper .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; opacity: 0.5; }
+    .input-wrapper input {
+      width: 100%; padding: 12px 14px 12px 42px;
+      border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px;
+      font-family: inherit; background: #f8fafc; color: #1a1a2e;
+      outline: none; transition: border-color 0.3s;
+    }
+    body.dark .input-wrapper input { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+    .input-wrapper input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+
+    .tabs-label { font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 10px; }
+    body.dark .tabs-label { color: #b1bac4; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tab {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0;
+      background: transparent; font-size: 13px; font-weight: 500;
+      color: #64748b; cursor: pointer; font-family: inherit;
+      transition: all 0.2s;
+    }
+    body.dark .tab { border-color: #30363d; color: #8b949e; }
+    .tab:hover { border-color: #2563eb; color: #2563eb; }
+    .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    .launch-row { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+    .btn {
+      padding: 14px 32px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
+      transition: all 0.25s; display: flex; align-items: center; gap: 10px;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(37,99,235,0.35); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary.loading { pointer-events: none; }
+    .btn-primary .spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; }
+    .btn-primary.loading .spinner { display: block; animation: spin 0.8s linear infinite; }
+    .btn-primary.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-outline {
+      padding: 14px 20px; border: 1px solid #e2e8f0; border-radius: 10px;
+      background: transparent; color: #64748b; font-size: 14px; font-family: inherit; cursor: pointer;
+    }
+    body.dark .btn-outline { border-color: #30363d; color: #8b949e; }
+    .btn-outline:hover { border-color: #ef4444; color: #ef4444; }
+
+    .btn-sub {
+      padding: 10px 24px; border: none; border-radius: 10px;
+      background: #16a34a; color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: all 0.25s;
+    }
+    .btn-sub:hover { background: #15803d; }
+
+    .log-box {
+      margin-top: 16px; max-height: 0; overflow: hidden; transition: max-height 0.5s ease;
+    }
+    .log-box.open { max-height: 500px; }
+    .log {
+      background: #f1f5f9; border-radius: 10px; padding: 16px;
+      font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.8;
+      max-height: 240px; overflow-y: auto; color: #334155;
+    }
+    body.dark .log { background: #0d1117; color: #8b949e; }
+    .log .entry { opacity: 0; animation: fadeIn 0.3s ease forwards; }
+    .log .entry.success { color: #16a34a; }
+    .log .entry.error { color: #dc2626; }
+    .log .entry.info { color: #2563eb; }
+    .log .entry.warn { color: #d97706; }
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    .history { margin-top: 24px; }
+    .history h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+    .history-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 10px;
+      margin-bottom: 8px; font-size: 13px; transition: border-color 0.4s, background 0.4s;
+    }
+    body.dark .history-item { border-color: #30363d; }
+    .history-item:hover { border-color: #2563eb; }
+    .history-item .target { font-weight: 600; word-break: break-all; max-width: 40%; }
+    .history-item .status { font-size: 12px; padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+    .status-active { background: rgba(37,99,235,0.1); color: #2563eb; }
+    .status-completed { background: rgba(22,163,74,0.1); color: #16a34a; }
+    .status-error { background: rgba(220,38,38,0.1); color: #dc2626; }
+    .history-empty { font-size: 14px; color: #64748b; text-align: center; padding: 32px; }
+    body.dark .history-empty { color: #8b949e; }
+
+    .no-sub-overlay {
+      display: none; position: absolute; inset: 0; border-radius: 16px;
+      background: rgba(255,255,255,0.85); backdrop-filter: blur(8px);
+      z-index: 10; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    body.dark .no-sub-overlay { background: rgba(13,17,23,0.85); }
+    .no-sub-overlay.show { display: flex; }
+    .no-sub-overlay .icon { font-size: 48px; }
+    .no-sub-overlay h3 { font-size: 18px; font-weight: 700; }
+    .no-sub-overlay p { font-size: 14px; color: #64748b; text-align: center; max-width: 360px; }
+    body.dark .no-sub-overlay p { color: #8b949e; }
+
+    .key-activate {
+      margin-top: 20px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;
+    }
+    body.dark .key-activate { border-color: #30363d; }
+    .key-activate h4 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .key-activate .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .key-activate input {
+      flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 10px;
+      font-size: 14px; font-family: monospace; background: #f8fafc; color: #1a1a2e; outline: none;
+    }
+    body.dark .key-activate input { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+    .key-activate input:focus { border-color: #2563eb; }
+
+    .sub-info-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-radius: 10px; margin-bottom: 16px;
+      border: 1px solid #e2e8f0;
+    }
+    body.dark .sub-info-bar { border-color: #30363d; }
+    .sub-info-bar .left { display: flex; align-items: center; gap: 10px; }
+    .sub-info-bar .left .label { font-size: 13px; color: #64748b; }
+    body.dark .sub-info-bar .left .label { color: #8b949e; }
+    .sub-info-bar .left .value { font-size: 14px; font-weight: 600; }
+    .sub-info-bar .btn-sm {
+      padding: 6px 14px; border: 1px solid #2563eb; border-radius: 8px;
+      font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+      background: transparent; color: #2563eb; transition: all 0.2s;
+    }
+    .sub-info-bar .btn-sm:hover { background: rgba(37,99,235,0.08); }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9998;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 32px; width: 100%; max-width: 420px; margin: 20px;
+      position: relative;
+    }
+    body.dark .modal { background: #161b22; }
+    .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .modal p { font-size: 14px; color: #64748b; margin-bottom: 20px; }
+    body.dark .modal p { color: #8b949e; }
+    .modal .close-btn {
+      position: absolute; top: 16px; right: 20px; font-size: 20px; cursor: pointer; color: #64748b; background: none; border: none;
+    }
+
+    footer {
+      border-top: 1px solid rgba(0,0,0,0.06); padding: 24px 0; margin-top: 48px;
+      font-size: 13px; color: #64748b; text-align: center;
+    }
+    body.dark footer { border-color: rgba(255,255,255,0.06); color: #8b949e; }
+
+    .toast {
+      position: fixed; bottom: 30px; right: 30px; z-index: 9999;
+      padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500;
+      color: #fff; transform: translateY(100px); opacity: 0;
+      transition: all 0.4s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+
+    @media (max-width: 640px) {
+      nav { flex-direction: column; gap: 12px; }
+      .panel { padding: 20px; }
+      .sub-info-bar { flex-direction: column; gap: 12px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="theme-toggle" id="themeToggle">🌙</button>
+  <div class="toast" id="toast"></div>
+
+  <!-- Activate key modal -->
+  <div class="modal-overlay" id="keyModal">
+    <div class="modal">
+      <button class="close-btn" onclick="closeKeyModal()">✕</button>
+      <h3>🔑 Активировать ключ</h3>
+      <p>Введите ключ подписки, полученный от администратора</p>
+      <input type="text" id="activateKeyInput" placeholder="Введите ключ..." style="width:100%;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:monospace;background:#f8fafc;color:#1a1a2e;outline:none;margin-bottom:16px">
+      <button class="btn-sub" style="width:100%" id="activateKeyBtn">Активировать</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <nav>
+      <div class="logo">Frosty <span>•</span></div>
+      <ul class="nav-links">
+        <li><a href="/">Главная</a></li>
+        <li><span class="sub-status inactive" id="subStatusBadge"><span class="dot"></span> <span id="subStatusText">Нет подписки</span></span></li>
+        <li><span class="username" id="navUser"></span></li>
+        <li><a href="#" id="logoutBtn" style="color:#ef4444">Выйти</a></li>
+      </ul>
+    </nav>
+
+    <div class="page-title">🚀 Панель управления</div>
+    <div class="page-sub">Запуск массовых жалоб на цель</div>
+
+    <div class="maintenance-badge" id="maintenanceBadge">
+      🔧 Сайт на технических работах. Атаки временно недоступны.
+    </div>
+
+    <div class="panel" style="position:relative">
+
+      <div class="no-sub-overlay" id="noSubOverlay">
+        <div class="icon">🔒</div>
+        <h3>Нет активной подписки</h3>
+        <p>Приобрести подписку можно у администратора: <strong>@unnacy</strong> в Telegram</p>
+        <button class="btn-sub" onclick="openKeyModal()">Активировать ключ</button>
+      </div>
+
+      <div class="sub-info-bar" id="subInfoBar" style="display:none">
+        <div class="left">
+          <span>📅</span>
+          <span class="label">Подписка активна до:</span>
+          <span class="value" id="subExpiryLabel">—</span>
+        </div>
+        <button class="btn-sm" onclick="openKeyModal()">🔑 Ввести ключ</button>
+      </div>
+
+      <div class="form-group">
+        <label>Ссылка на сообщение</label>
+        <div class="input-wrapper">
+          <span class="icon">🔗</span>
+          <input type="text" id="targetInput" placeholder="https://t.me/c/... или t.me/username/1234">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="tabs-label">Причина жалобы</div>
+        <div class="tabs" id="reasonTabs">
+          <button class="tab active" data-reason="spam">Спам</button>
+          <button class="tab" data-reason="violence">Насилие</button>
+          <button class="tab" data-reason="hate">Разжигание ненависти</button>
+          <button class="tab" data-reason="scam">Мошенничество</button>
+          <button class="tab" data-reason="porn">Порнография</button>
+          <button class="tab" data-reason="copyright">Нарушение авторских прав</button>
+        </div>
+      </div>
+
+      <div class="launch-row">
+        <button class="btn btn-primary" id="launchBtn">
+          <span class="btn-text">▶ Запустить волну</span>
+          <span class="spinner"></span>
+        </button>
+        <button class="btn-outline" id="clearBtn">✕ Очистить</button>
+      </div>
+
+      <div class="log-box" id="logBox">
+        <div class="log" id="logOutput">
+          <div>✅ Успешно: <b id="successCount">0</b> &nbsp;|&nbsp; ❌ Ошибок: <b id="errorCount">0</b> &nbsp;|&nbsp; ⏳ Отправлено: <b id="totalSent">0</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel history">
+      <h3>📋 История атак</h3>
+      <div id="historyList">
+        <div class="history-empty">Загрузка...</div>
+      </div>
+    </div>
+
+    <footer>© 2026 Frosty NETWORK</footer>
+  </div>
+
+  <script>
+    function toast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast ' + type + ' show';
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    function openKeyModal() { document.getElementById('keyModal').classList.add('show'); }
+    function closeKeyModal() { document.getElementById('keyModal').classList.remove('show'); }
+
+    const reasons = { spam: 'Спам', violence: 'Насилие', hate: 'Разжигание ненависти', scam: 'Мошенничество', porn: 'Порнография', copyright: 'Нарушение авторских прав' };
+
+    const themeToggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('snoser-theme');
+    if (saved === 'dark') document.body.classList.add('dark');
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('snoser-theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+      themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+    });
+    themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+
+    let currentUser = null;
+
+    // Auth check + subscription
+    fetch('/api/me').then(r => r.json()).then(data => {
+      if (!data.ok) { window.location.href = '/login'; return; }
+      currentUser = data.user;
+      document.getElementById('navUser').textContent = data.user.username;
+      updateSubUI(data.user);
+      if (data.user.role === 'admin') {
+        const nav = document.querySelector('.nav-links');
+        const li = document.createElement('li');
+        li.innerHTML = '<a href="/admin" class="admin-link">Админка</a>';
+        nav.insertBefore(li, nav.children[nav.children.length - 1]);
+      }
+    });
+
+    // Check maintenance mode
+    fetch('/api/stats').then(r => r.json()).then(data => {
+      if (data.maintenance) {
+        document.getElementById('maintenanceBadge').classList.add('show');
+      }
+    });
+
+    function updateSubUI(user) {
+      const badge = document.getElementById('subStatusBadge');
+      const text = document.getElementById('subStatusText');
+      const overlay = document.getElementById('noSubOverlay');
+      const bar = document.getElementById('subInfoBar');
+      const launchBtn = document.getElementById('launchBtn');
+
+      if (user.has_subscription) {
+        badge.className = 'sub-status active';
+        text.textContent = 'Подписка есть';
+        overlay.classList.remove('show');
+        bar.style.display = 'flex';
+        launchBtn.disabled = false;
+
+        // Calculate remaining time
+        if (user.subscription_expires_at) {
+          const expires = new Date(user.subscription_expires_at.replace(' ', 'T'));
+          const now = new Date();
+          const diff = expires - now;
+          if (diff <= 0) {
+            document.getElementById('subExpiryLabel').textContent = 'истекает...';
+          } else if (user.subscription_expires_at.includes('9999')) {
+            document.getElementById('subExpiryLabel').textContent = 'навсегда';
+          } else {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            if (days > 0) {
+              document.getElementById('subExpiryLabel').textContent = `${days} дн ${hours} ч`;
+            } else {
+              const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+              document.getElementById('subExpiryLabel').textContent = `${hours} ч ${mins} мин`;
+            }
+          }
+        }
+      } else {
+        badge.className = 'sub-status inactive';
+        text.textContent = 'Нет подписки';
+
+        // Update overlay message
+        const overlay = document.getElementById('noSubOverlay');
+        overlay.innerHTML = '<div class="icon">🔒</div><h3>Нет активной подписки</h3><p>Приобрести подписку можно у администратора: <strong>@unnacy</strong> в Telegram</p><button class="btn-sub" onclick="openKeyModal()">Активировать ключ</button>';
+        overlay.classList.add('show');
+        bar.style.display = 'none';
+        launchBtn.disabled = true;
+      }
+    }
+
+    // Activate key
+    document.getElementById('activateKeyBtn').addEventListener('click', async () => {
+      const key = document.getElementById('activateKeyInput').value.trim();
+      if (!key) { toast('Введите ключ', 'error'); return; }
+      const btn = document.getElementById('activateKeyBtn');
+      btn.disabled = true; btn.textContent = 'Активация...';
+      const res = await fetch('/api/activate-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key })
+      });
+      const data = await res.json();
+      btn.disabled = false; btn.textContent = 'Активировать';
+      if (data.ok) {
+        toast('Подписка активирована!', 'success');
+        closeKeyModal();
+        document.getElementById('activateKeyInput').value = '';
+        // Refresh user data
+        const me = await (await fetch('/api/me')).json();
+        if (me.ok) { currentUser = me.user; updateSubUI(me.user); }
+      } else {
+        toast(data.error || 'Ошибка активации', 'error');
+      }
+    });
+
+    document.getElementById('activateKeyInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('activateKeyBtn').click();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    });
+
+    // Tabs
+    let selectedReason = 'spam';
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        selectedReason = tab.dataset.reason;
+      });
+    });
+
+    // Attack
+    let isRunning = false;
+    let waves = 0, totalWaves = 0;
+    let success = 0, errors = 0, sent = 0;
+    let attackTimer = null;
+
+    document.getElementById('launchBtn').addEventListener('click', () => {
+      const target = document.getElementById('targetInput').value.trim();
+      if (!target) {
+        document.getElementById('targetInput').style.borderColor = '#dc2626';
+        document.getElementById('targetInput').focus();
+        setTimeout(() => document.getElementById('targetInput').style.borderColor = '', 1500);
+        return;
+      }
+      if (isRunning) return;
+
+      isRunning = true;
+      waves = 0; success = 0; errors = 0; sent = 0;
+      document.getElementById('launchBtn').classList.add('loading');
+      document.getElementById('logBox').classList.add('open');
+      document.getElementById('logOutput').innerHTML = '<div>✅ Успешно: <b id="successCount">0</b> &nbsp;|&nbsp; ❌ Ошибок: <b id="errorCount">0</b> &nbsp;|&nbsp; ⏳ Отправлено: <b id="totalSent">0</b></div>';
+
+      addLog('info', 'Запуск волны жалоб...');
+      addLog('info', `Цель: ${target}`);
+      addLog('info', `Причина: ${reasons[selectedReason]}`);
+
+      fetch('/api/attack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target, reason: selectedReason })
+      }).then(r => r.json()).then(data => {
+        if (!data.ok) {
+          addLog('error', data.error || 'Ошибка запуска');
+          isRunning = false;
+          document.getElementById('launchBtn').classList.remove('loading');
+          return;
+        }
+        addLog('success', 'Атака зарегистрирована в системе');
+
+        totalWaves = 8 + Math.floor(Math.random() * 8);
+        const totalSessions = data.totalSessions || (50 + Math.floor(Math.random() * 319));
+        const sessionsPerWave = Math.floor(totalSessions / totalWaves);
+        let waveSent = 0;
+
+        attackTimer = setInterval(() => {
+          if (waves >= totalWaves || waveSent >= totalSessions) {
+            clearInterval(attackTimer);
+            finishAttack();
+            loadHistory();
+            return;
+          }
+          waves++;
+          const batch = Math.min(sessionsPerWave + Math.floor(Math.random() * 6) - 2, totalSessions - waveSent);
+          const invalidRate = Math.random() * 0.3 + 0.05;
+          let bs = 0, be = 0;
+          for (let i = 0; i < batch; i++) {
+            Math.random() > invalidRate ? (success++, bs++, sent++) : (errors++, be++);
+          }
+          waveSent += batch;
+          updateStats();
+          addLog(be === 0 ? 'success' : (bs > be ? 'warn' : 'error'),
+            `Волна ${waves}/${totalWaves}: +${bs} успешно, +${be} ошибок`);
+        }, 500 + Math.random() * 500);
+      });
+    });
+
+    function finishAttack() {
+      isRunning = false;
+      document.getElementById('launchBtn').classList.remove('loading');
+      const msg = errors === 0
+        ? `🎯 Атака завершена! Все ${success} жалоб отправлены успешно.`
+        : `⚠️ Завершено. ${success} успешно, ${errors} ошибок.`;
+      addLog(errors === 0 ? 'success' : 'warn', msg);
+    }
+
+    function addLog(type, text) {
+      const log = document.getElementById('logOutput');
+      const entry = document.createElement('div');
+      entry.className = `entry ${type}`;
+      entry.textContent = `> ${text}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function updateStats() {
+      document.getElementById('successCount').textContent = success;
+      document.getElementById('errorCount').textContent = errors;
+      document.getElementById('totalSent').textContent = sent;
+    }
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      document.getElementById('targetInput').value = '';
+    });
+
+    document.getElementById('targetInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('launchBtn').click();
+    });
+
+    // History
+    async function loadHistory() {
+      const res = await fetch('/api/user-attacks');
+      const attacks = await res.json();
+      const list = document.getElementById('historyList');
+
+      if (!attacks.length) {
+        list.innerHTML = '<div class="history-empty">История пуста</div>';
+        return;
+      }
+
+      list.innerHTML = attacks.map(a => {
+        const statusClass = a.status === 'active' ? 'status-active' : (a.status.startsWith('completed') ? 'status-completed' : 'status-error');
+        const statusText = a.status === 'active' ? 'Активна' : 'Завершена';
+        return `<div class="history-item">
+          <span class="target">${a.target}</span>
+          <span style="color:#64748b">${reasons[a.reason] || a.reason}</span>
+          <span>+${a.success_count} / −${a.error_count}</span>
+          <span class="status ${statusClass}">${statusText}</span>
+        </div>`;
+      }).join('');
+    }
+    loadHistory();
+  </script>
+</body>
+</html>

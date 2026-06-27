@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход — Frosty</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f7fa; color: #1a1a2e;
+      transition: background 0.4s, color 0.4s;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    body.dark { background: #0d1117; color: #e6edf3; }
+
+    .theme-toggle {
+      position: fixed; top: 20px; right: 20px; z-index: 1000;
+      width: 44px; height: 44px; border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(12px); cursor: pointer; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    body.dark .theme-toggle { background: rgba(30,40,60,0.8); border-color: rgba(255,255,255,0.08); }
+    .theme-toggle:hover { transform: scale(1.05) rotate(15deg); }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .card { animation: fadeInUp 0.5s ease; }
+
+    .card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+      padding: 40px; width: 100%; max-width: 400px; margin: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+      transition: background 0.4s, border-color 0.4s;
+    }
+    body.dark .card { background: #161b22; border-color: #30363d; }
+
+    .logo { font-size: 22px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+    .logo span { color: #2563eb; }
+    .sub { text-align: center; font-size: 14px; color: #64748b; margin-bottom: 28px; }
+    body.dark .sub { color: #8b949e; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+    body.dark .form-group label { color: #b1bac4; }
+    .form-group input {
+      width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 10px;
+      font-size: 14px; font-family: inherit; background: #f8fafc; color: #1a1a2e;
+      outline: none; transition: border-color 0.3s;
+    }
+    body.dark .form-group input { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+    .form-group input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+    body.dark .form-group input:focus { box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+
+    .btn {
+      width: 100%; padding: 12px; border: none; border-radius: 10px;
+      background: #2563eb; color: #fff; font-size: 15px; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: all 0.25s;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .error { color: #dc2626; font-size: 13px; margin-bottom: 12px; display: none; }
+    .footer-text { text-align: center; font-size: 13px; color: #64748b; margin-top: 20px; }
+    body.dark .footer-text { color: #8b949e; }
+    .footer-text a { color: #2563eb; text-decoration: none; font-weight: 600; }
+    .footer-text a:hover { text-decoration: underline; }
+    .back-link { display: block; text-align: center; font-size: 13px; color: #64748b; text-decoration: none; margin-top: 12px; }
+    body.dark .back-link { color: #8b949e; }
+    .back-link:hover { color: #2563eb; }
+  </style>
+</head>
+<body>
+
+  <button class="theme-toggle" id="themeToggle">🌙</button>
+
+  <div class="card">
+    <div class="logo">Frosty <span>•</span></div>
+    <div class="sub">Вход в панель управления</div>
+
+    <div class="error" id="errorMsg"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Логин</label>
+        <input type="text" id="username" placeholder="admin" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="password" placeholder="••••••" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn" id="submitBtn">Войти</button>
+    </form>
+
+    <div class="footer-text">
+      Нет аккаунта? <a href="/register">Зарегистрироваться</a>
+    </div>
+    <a href="/" class="back-link">← На главную</a>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById('themeToggle');
+    const saved = localStorage.getItem('snoser-theme');
+    if (saved === 'dark') document.body.classList.add('dark');
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('snoser-theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+      themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+    });
+    themeToggle.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('banned') === '1') {
+      document.getElementById('errorMsg').textContent = 'Аккаунт заблокирован. Обратитесь к администратору.';
+      document.getElementById('errorMsg').style.display = 'block';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const errorEl = document.getElementById('errorMsg');
+      btn.disabled = true; btn.textContent = 'Вход...';
+
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        })
+      });
+      const data = await res.json();
+      btn.disabled = false; btn.textContent = 'Войти';
+
+      if (data.ok) {
+        window.location.href = data.role === 'admin' ? '/admin' : '/dashboard';
+      } else {
+        errorEl.textContent = data.error;
+        errorEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
